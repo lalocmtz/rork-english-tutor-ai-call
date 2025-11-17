@@ -1,6 +1,7 @@
 import { Audio } from "expo-av";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
+import "react-native-url-polyfill/auto";
 import { SOUND_URLS } from "@/constants/sounds";
 import { TutorLanguage, TutorStyle } from "@/constants/tutors";
 
@@ -27,6 +28,8 @@ export function useRealtimeCall({
   const soundObjectRef = useRef<Audio.Sound | null>(null);
   const audioQueueRef = useRef<string[]>([]);
   const isPlayingRef = useRef<boolean>(false);
+  const audioChunkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastAudioPositionRef = useRef<number>(0);
 
   const playSound = async (url: string) => {
     try {
@@ -375,17 +378,16 @@ export function useRealtimeCall({
     console.log("✅ API key loaded, length:", apiKey.length);
     console.log("🔑 Using API key (first 20 chars):", apiKey.substring(0, 20) + "...");
 
-    const wsUrl = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17";
+    const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
     console.log("🔗 Connecting to:", wsUrl);
 
     try {
-      const ws = new WebSocket(wsUrl, ["openai-insecure-api-key", apiKey]);
-
-      // @ts-ignore
-      if (ws.binaryType) {
-        // @ts-ignore
-        ws.binaryType = "arraybuffer";
-      }
+      console.log("Creating WebSocket with protocols...");
+      const ws = new WebSocket(wsUrl, [
+        "realtime",
+        `openai-insecure-api-key.${apiKey}`,
+        "openai-beta.realtime-v1"
+      ]);
 
       setupWebSocket(ws);
     } catch (error) {
@@ -508,6 +510,44 @@ export function useRealtimeCall({
         recordingRef.current = recording;
 
         console.log("✅ Native recording started");
+        
+        lastAudioPositionRef.current = 0;
+        audioChunkIntervalRef.current = setInterval(async () => {
+          if (recordingRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
+            try {
+              const status = await recordingRef.current.getStatusAsync();
+              if (status.isRecording && status.durationMillis > lastAudioPositionRef.current) {
+                const uri = recording.getURI();
+                if (uri) {
+                  const response = await fetch(uri);
+                  const arrayBuffer = await response.arrayBuffer();
+                  
+                  let audioData: Uint8Array;
+                  if (Platform.OS === "ios") {
+                    const wavData = new Uint8Array(arrayBuffer);
+                    audioData = wavData.slice(44);
+                  } else {
+                    audioData = new Uint8Array(arrayBuffer);
+                  }
+                  
+                  const base64Audio = btoa(String.fromCharCode(...audioData));
+                  
+                  wsRef.current?.send(
+                    JSON.stringify({
+                      type: "input_audio_buffer.append",
+                      audio: base64Audio,
+                    })
+                  );
+                  
+                  console.log("🎤 Sent audio chunk, size:", audioData.length);
+                  lastAudioPositionRef.current = status.durationMillis;
+                }
+              }
+            } catch (error) {
+              console.error("❌ Error sending audio chunk:", error);
+            }
+          }
+        }, 250);
       }
     } catch (error) {
       console.error("❌ Error starting recording:", error);
@@ -530,13 +570,13 @@ export function useRealtimeCall({
           console.log("ℹ️ No web recording to stop");
         }
       } else {
+        if (audioChunkIntervalRef.current) {
+          clearInterval(audioChunkIntervalRef.current);
+          audioChunkIntervalRef.current = null;
+        }
+        
         if (recordingRef.current) {
           try {
-            const interval = (recordingRef.current as any)._audioChunkInterval;
-            if (interval) {
-              clearInterval(interval);
-            }
-
             const status = await recordingRef.current.getStatusAsync();
             if (status.canRecord || status.isRecording) {
               await recordingRef.current.stopAndUnloadAsync();
