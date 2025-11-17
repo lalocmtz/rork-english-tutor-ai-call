@@ -162,9 +162,17 @@ export function useRealtimeCall({
             }
           }
 
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: true,
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: true,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+          });
+
           const { sound } = await Audio.Sound.createAsync(
             { uri: `data:audio/wav;base64,${wavBase64}` },
-            { shouldPlay: false }
+            { shouldPlay: false, volume: 1.0 }
           );
 
           soundObjectRef.current = sound;
@@ -499,43 +507,6 @@ export function useRealtimeCall({
         await recording.startAsync();
         recordingRef.current = recording;
 
-        let lastPosition = 0;
-        const sendAudioChunks = setInterval(async () => {
-          if (
-            recordingRef.current &&
-            wsRef.current?.readyState === WebSocket.OPEN
-          ) {
-            try {
-              const status = await recordingRef.current.getStatusAsync();
-              if (status.isRecording && status.durationMillis > lastPosition + 250) {
-                const uri = recording.getURI();
-                if (uri) {
-                  const response = await fetch(uri);
-                  const blob = await response.blob();
-                  const arrayBuffer = await blob.arrayBuffer();
-                  const base64Audio = btoa(
-                    String.fromCharCode(...new Uint8Array(arrayBuffer))
-                  );
-                  
-                  wsRef.current?.send(
-                    JSON.stringify({
-                      type: "input_audio_buffer.append",
-                      audio: base64Audio,
-                    })
-                  );
-                  
-                  console.log("🎤 Sent native audio chunk, duration:", status.durationMillis);
-                  lastPosition = status.durationMillis;
-                }
-              }
-            } catch (error) {
-              console.error("❌ Error sending audio chunk:", error);
-            }
-          }
-        }, 250);
-
-        (recording as any)._audioChunkInterval = sendAudioChunks;
-
         console.log("✅ Native recording started");
       }
     } catch (error) {
@@ -611,6 +582,14 @@ export function useRealtimeCall({
         await playSound(SOUND_URLS.callAnswer);
 
         setTimeout(async () => {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: true,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+          });
+          
           connectWebSocket();
           await startRecording();
         }, 500);
