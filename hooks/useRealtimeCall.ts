@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 import "react-native-url-polyfill/auto";
 import { SOUND_URLS } from "@/constants/sounds";
 import { TutorLanguage, TutorStyle } from "@/constants/tutors";
+import { trpcClient } from "@/lib/trpc";
 
 interface UseRealtimeCallProps {
   tutorName: string;
@@ -355,33 +356,22 @@ export function useRealtimeCall({
     wsRef.current = ws;
   };
 
-  const connectWebSocket = useCallback(() => {
+  const connectWebSocket = useCallback(async () => {
     if (Platform.OS === "web") {
       console.error("❌ Realtime voice solo funciona en dispositivo físico (usa Expo Go en tu iPhone).");
       return;
     }
 
-    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-
-    console.log("🔑 API KEY CHECK:");
-    console.log("   - Is defined:", apiKey !== undefined);
-    console.log("   - Is null:", apiKey === null);
-    console.log("   - Type:", typeof apiKey);
-    console.log("   - Length:", apiKey?.length || 0);
-
-    if (!apiKey || apiKey === "undefined" || apiKey.length === 0) {
-      console.error("❌ OpenAI API key is not configured");
-      console.error("❌ Please set EXPO_PUBLIC_OPENAI_API_KEY in Rork → Integrations → Environment Variables");
-      throw new Error("API key not loaded");
-    }
-
-    console.log("✅ API key loaded, length:", apiKey.length);
-    console.log("🔑 Using API key (first 20 chars):", apiKey.substring(0, 20) + "...");
-
-    const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
-    console.log("🔗 Connecting to:", wsUrl);
-
     try {
+      console.log("🔑 Fetching API key from backend...");
+      const { apiKey, length } = await trpcClient.openai.getApiKey.query();
+
+      console.log("✅ API key loaded from backend, length:", length);
+      console.log("🔑 Using API key (first 20 chars):", apiKey.substring(0, 20) + "...");
+
+      const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
+      console.log("🔗 Connecting to:", wsUrl);
+
       console.log("Creating WebSocket with protocols...");
       const ws = new WebSocket(wsUrl, [
         "realtime",
@@ -392,6 +382,8 @@ export function useRealtimeCall({
       setupWebSocket(ws);
     } catch (error) {
       console.error("❌ Error connecting WebSocket:", error);
+      console.error("❌ Please set EXPO_PUBLIC_OPENAI_API_KEY in Rork → Integrations → Environment Variables");
+      console.error("❌ Then restart the development server");
     }
   }, [tutorStyle, tutorLanguage]);
 

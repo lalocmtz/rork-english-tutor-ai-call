@@ -74,10 +74,11 @@
 
 ## 🚨 Troubleshooting
 
-### ❌ "API key not loaded"
-- Verifica que `EXPO_PUBLIC_OPENAI_API_KEY` esté en Rork Integrations
-- Reinicia el servidor de desarrollo
-- Confirma que la clave empiece con `sk-`
+### ❌ "API key not loaded" o "OpenAI API key is not configured"
+- Verifica que `EXPO_PUBLIC_OPENAI_API_KEY` esté en Rork Integrations → Environment Variables
+- **IMPORTANTE:** Reinicia completamente el servidor de desarrollo (detén y vuelve a ejecutar `bun run start`)
+- Confirma que la clave empiece con `sk-` y sea válida
+- La API key ahora se obtiene desde el backend de forma segura
 
 ### ❌ "WebSocket error"
 - Verifica tu conexión a internet
@@ -130,10 +131,12 @@ bunx expo start --clear
 - ✅ Validación simple de API key
 - ✅ Bloqueo en web con mensaje claro
 
-### 2. Validación de API key mejorada
+### 2. API key segura desde backend
+- ✅ La API key se obtiene desde el backend vía tRPC
+- ✅ No se expone directamente en el frontend
+- ✅ Variables de entorno accesibles desde Rork Integrations
 - ✅ Log de longitud de la clave
-- ✅ Verificación antes de throw error
-- ✅ Sin código después de return
+- ✅ Verificación antes de conectar WebSocket
 
 ### 3. Formato de audio correcto
 - ✅ Envío: `{ type: "input_audio_buffer.append", audio: base64 }`
