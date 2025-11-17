@@ -495,24 +495,37 @@ export function useRealtimeCall({
             .forEach((track) => track.stop());
           mediaRecorderRef.current = null;
           console.log("✅ Web recording stopped");
+        } else {
+          console.log("ℹ️ No web recording to stop");
         }
       } else {
         if (recordingRef.current) {
-          const interval = (recordingRef.current as any)._audioChunkInterval;
-          if (interval) {
-            clearInterval(interval);
-          }
+          try {
+            const interval = (recordingRef.current as any)._audioChunkInterval;
+            if (interval) {
+              clearInterval(interval);
+            }
 
-          await recordingRef.current.stopAndUnloadAsync();
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-            playsInSilentModeIOS: true,
-            staysActiveInBackground: false,
-            shouldDuckAndroid: false,
-            playThroughEarpieceAndroid: false,
-          });
-          recordingRef.current = null;
-          console.log("✅ Native recording stopped");
+            const status = await recordingRef.current.getStatusAsync();
+            if (status.canRecord || status.isRecording) {
+              await recordingRef.current.stopAndUnloadAsync();
+            }
+            
+            await Audio.setAudioModeAsync({
+              allowsRecordingIOS: false,
+              playsInSilentModeIOS: true,
+              staysActiveInBackground: false,
+              shouldDuckAndroid: false,
+              playThroughEarpieceAndroid: false,
+            });
+            recordingRef.current = null;
+            console.log("✅ Native recording stopped");
+          } catch (recordingError) {
+            console.log("ℹ️ Recording already stopped or not started:", recordingError);
+            recordingRef.current = null;
+          }
+        } else {
+          console.log("ℹ️ No native recording to stop");
         }
       }
     } catch (error) {
