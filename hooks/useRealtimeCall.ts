@@ -304,18 +304,38 @@ export function useRealtimeCall({
     ws.onerror = (error) => {
       console.error("❌ WebSocket connection error:", error);
       try {
-        console.error("❌ Error details:", JSON.stringify(error, null, 2));
+        console.error("❌ Error stringified:", JSON.stringify(error, null, 2));
+        console.error("❌ Error with getOwnPropertyNames:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        if (error && typeof error === "object") {
+          console.error("❌ Error keys:", Object.keys(error));
+          console.error("❌ Error entries:", Object.entries(error));
+        }
       } catch (e) {
-        console.error("❌ Error object:", error?.message || String(error));
+        console.error("❌ Error object (toString):", String(error));
+        console.error("❌ Error type:", typeof error);
       }
     };
 
     ws.onclose = (event) => {
-      console.log("🔌 WebSocket disconnected. Code:", event.code, "Reason:", event.reason);
+      console.log("🔌 WebSocket disconnected.");
+      console.log("   - Code:", event.code);
+      console.log("   - Reason:", event.reason || "(no reason provided)");
+      console.log("   - Was clean:", event.wasClean);
       
       if (event.code === 1002 || event.code === 1003 || event.code === 1008) {
         console.error("❌ WebSocket closed due to protocol/authentication error");
         console.error("❌ This usually means the API key is invalid or the auth format is wrong");
+        console.error("❌ Check that EXPO_PUBLIC_OPENAI_API_KEY is set correctly");
+      } else if (event.code === 1006) {
+        console.error("❌ WebSocket closed abnormally (no close frame)");
+        console.error("❌ This could be a network issue or server rejection");
+        
+        setTimeout(() => {
+          console.log("🔄 Attempting to reconnect in 3 seconds...");
+          if (wsRef.current === null) {
+            connectWebSocket();
+          }
+        }, 3000);
       }
       
       setIsConnected(false);
@@ -327,17 +347,26 @@ export function useRealtimeCall({
   const connectWebSocket = useCallback(() => {
     const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
 
-    if (!apiKey) {
+    console.log("🔑 API KEY CHECK:");
+    console.log("   - Is defined:", apiKey !== undefined);
+    console.log("   - Is null:", apiKey === null);
+    console.log("   - Type:", typeof apiKey);
+    console.log("   - Length:", apiKey?.length || 0);
+
+    if (!apiKey || apiKey === "undefined" || apiKey.length === 0) {
+      console.error("❌ API key not loaded");
       console.error("❌ OpenAI API key is not configured");
       console.error("❌ Please set EXPO_PUBLIC_OPENAI_API_KEY in Rork Integrations → Environment Variables");
-      return;
+      console.error("❌ Current value:", apiKey);
+      throw new Error("API key not loaded");
     }
 
+    console.log("✅ API key loaded, length:", apiKey.length);
+    console.log("🔑 Using API key (first 20 chars):", apiKey.substring(0, 20) + "...");
     console.log("🔌 Connecting to OpenAI Realtime API...");
-    console.log("🔑 Using API key:", apiKey.substring(0, 20) + "...");
 
     try {
-      const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01`;
+      const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
       console.log("🔗 Connecting to:", wsUrl);
       
       const ws = new WebSocket(
@@ -353,6 +382,7 @@ export function useRealtimeCall({
       setupWebSocket(ws);
     } catch (error) {
       console.error("❌ Error connecting WebSocket:", error);
+      console.error("❌ Error details:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
     }
   }, [tutorStyle, tutorLanguage]);
 
