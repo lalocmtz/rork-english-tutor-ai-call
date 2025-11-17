@@ -313,10 +313,11 @@ export function useRealtimeCall({
   };
 
   const connectWebSocket = useCallback(() => {
-    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || "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";
+    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
 
     if (!apiKey) {
       console.error("❌ OpenAI API key is not configured");
+      console.error("❌ Please set EXPO_PUBLIC_OPENAI_API_KEY in Rork Integrations → Environment Variables");
       return;
     }
 
@@ -324,16 +325,22 @@ export function useRealtimeCall({
     console.log("🔑 Using API key:", apiKey.substring(0, 20) + "...");
 
     try {
-      console.log("🔗 Constructing WebSocket URL with embedded auth...");
       const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01`;
-      const wsUrlWithAuth = `${wsUrl}&authorization=${encodeURIComponent(`Bearer ${apiKey}`)}`;
+      console.log("🔗 Connecting to:", wsUrl);
       
-      console.log("🔗 Connecting to:", wsUrl + "&authorization=Bearer..." );
-      const ws = new WebSocket(wsUrlWithAuth);
+      const ws = new WebSocket(
+        wsUrl,
+        [],
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "OpenAI-Beta": "realtime=v1",
+          },
+        }
+      );
       setupWebSocket(ws);
     } catch (error) {
       console.error("❌ Error connecting WebSocket:", error);
-      console.error("❌ Full error:", error);
     }
   }, [tutorStyle, tutorLanguage]);
 
