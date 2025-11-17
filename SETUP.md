@@ -1,72 +1,113 @@
-# English Tutor - Guía de Configuración e Instalación
+# 🎯 Guía de Configuración y Uso - English Tutor
 
-> **App funcional de llamadas de voz con OpenAI Realtime API**
+## ⚡ Configuración Rápida
 
-## 🚀 INICIO RÁPIDO
+### 1. Configura tu API Key de OpenAI
 
-### Paso 1: Configurar API Key en Rork
+**IMPORTANTE:** Esta app requiere una API key de OpenAI configurada en Rork.
 
-**MUY IMPORTANTE - La app NO funcionará sin esto:**
+#### En Rork:
+1. Ve a **Integrations → Environment Variables**
+2. Añade:
+   - **Key:** `EXPO_PUBLIC_OPENAI_API_KEY`
+   - **Value:** Tu clave de OpenAI (empieza con `sk-...`)
+3. **Reinicia** el servidor de desarrollo
 
-1. Ve a [Rork.app](https://rork.app) → Tu proyecto
-2. Click en **Integrations** → **Environment Variables**
-3. Agrega esta variable:
+#### Obtener tu API Key:
+1. Ve a [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+2. Crea una nueva clave secreta
+3. Copia la clave completa
+
+---
+
+## 📱 Cómo ejecutar la app
+
+### En iPhone/Android (RECOMENDADO)
+
+**⚠️ Esta app SOLO funciona en dispositivo físico, NO en web**
+
+1. **Descarga Expo Go:**
+   - iOS: [App Store](https://apps.apple.com/app/expo-go/id982107779)
+   - Android: [Google Play](https://play.google.com/store/apps/details?id=host.exp.exponent)
+
+2. **Inicia el servidor:**
+   ```bash
+   bun run start
    ```
-   Nombre: EXPO_PUBLIC_OPENAI_API_KEY
-   Valor: tu_api_key_de_openai
-   ```
-4. Guarda y reinicia la app
 
-### Paso 2: Obtener API Key de OpenAI
+3. **Escanea el QR:**
+   - iOS: Abre la cámara → Apunta al QR
+   - Android: Abre Expo Go → Usa el scanner
 
-1. Ve a [platform.openai.com](https://platform.openai.com)
-2. Navega a **API Keys**
-3. Crea una nueva key
-4. Cópiala y pégala en Rork (Paso 1)
+---
 
-### Paso 3: Abrir en tu iPhone
+## 🎯 Flujo de uso
 
-1. Descarga **Expo Go** o **Rork App** del App Store
-2. Escanea el QR desde la terminal de Rork
-3. ¡Listo! Ya puedes hablar con los tutores
+1. **Pantalla principal:** Selecciona un tutor
+2. **Pre-llamada:** Configura estilo e idioma (solo la primera vez)
+3. **Llamada activa:**
+   - El tutor te saluda primero
+   - Habla naturalmente en inglés o español
+   - El tutor responde en tiempo real
+   - Los subtítulos muestran lo que dice
+4. **Calificación:** Evalúa la experiencia
 
-## ✅ Verificación de Configuración
+---
 
-Cuando abras la app, deberías ver en los logs:
+## 🔍 Verificación técnica
 
-```
+### Logs esperados:
+
+```bash
+🔑 API KEY LENGTH: 51
+✅ API key loaded
 🔌 Connecting to OpenAI Realtime API...
-🔑 Using API key: sk-proj-...
 ✅ WebSocket connected successfully
-✅ Session created successfully
+✅ Session update sent
+✅ Triggered initial greeting
+🎵 Received audio delta, length: 1234
+🎤 User started speaking
+🎤 User stopped speaking
 ```
 
-Si ves `❌ OpenAI API key is not configured`, revisa el Paso 1.
+---
 
-## 📱 Cómo Usar la App
+## 🚨 Troubleshooting
 
-### Primera vez:
-1. Selecciona tutor (Maya o Miles)
-2. Configura estilo y idioma
-3. Presiona "Iniciar Llamada"
-4. Habla cuando el tutor te salude
+### ❌ "API key not loaded"
+- Verifica que `EXPO_PUBLIC_OPENAI_API_KEY` esté en Rork Integrations
+- Reinicia el servidor de desarrollo
+- Confirma que la clave empiece con `sk-`
 
-### Siguientes veces:
-1. Presiona el tutor
-2. Comienza a hablar inmediatamente
+### ❌ "WebSocket error"
+- Verifica tu conexión a internet
+- Confirma que tu API key sea válida en [platform.openai.com](https://platform.openai.com/account/api-keys)
+- Revisa que tengas créditos disponibles
 
-## 🎯 Características
+### ❌ No escucho respuestas
+- Verifica permisos del micrófono
+- Confirma que el volumen esté alto
+- Revisa los logs: debe aparecer "🎵 Received audio delta"
+- Asegúrate de estar en dispositivo físico (no web)
 
-- ✅ Llamadas de voz en tiempo real con AI
-- ✅ Subtítulos en vivo (activables/desactivables)
-- ✅ 3 estilos de enseñanza (Estricto, Amigable, Coach)
-- ✅ 3 modos de idioma (Inglés, Español, Mixto)
-- ✅ Racha de días (como Duolingo)
-- ✅ Contador de minutos mensuales
-- ✅ Sonidos realistas de llamada
-- ✅ Sistema de calificación
+### ❌ "Realtime voice only funciona en dispositivo físico"
+- Esta app NO funciona en navegador
+- Usa Expo Go en iPhone o Android
 
-## 🔧 Desarrollo Local
+---
+
+## 📂 Archivos clave
+
+```
+hooks/useRealtimeCall.ts      # Lógica WebSocket + Audio
+app/call.tsx                   # Pantalla de llamada
+constants/tutors.ts            # Configuración de tutores
+providers/AppStateProvider.tsx # Estado global
+```
+
+---
+
+## 🔧 Comandos útiles
 
 ```bash
 # Instalar dependencias
@@ -75,82 +116,80 @@ bun install
 # Iniciar servidor
 bun run start
 
-# Escanear QR con tu teléfono
+# Limpiar cache
+bunx expo start --clear
 ```
-
-## 🐛 Solución de Problemas
-
-### "No escucho al tutor"
-1. Verifica que el volumen esté alto
-2. Usa un dispositivo real (no simulador)
-3. Revisa que la API key esté configurada
-4. Verifica los logs en la consola
-
-### "WebSocket error"
-1. Verifica la API key en Rork
-2. Checa tu saldo en OpenAI
-3. Reinicia la app
-
-### "No pide permisos de micrófono"
-- Los permisos se solicitan automáticamente
-- Si no aparecen, verifica Ajustes del iPhone
-
-## 📂 Archivos Importantes
-
-```
-hooks/useRealtimeCall.ts       # Conexión con OpenAI
-providers/AppStateProvider.tsx # Estado de la app
-app/call.tsx                   # Pantalla de llamada
-constants/tutors.ts            # Configuración de tutores
-```
-
-## 🔐 Seguridad
-
-- ✅ Sin API keys en el código
-- ✅ Variables de entorno en Rork
-- ✅ `.gitignore` configurado correctamente
-- ❌ NUNCA hagas commit de `.env` o `env`
-
-## 📝 Logs Útiles para Debugging
-
-```
-🔌 = WebSocket
-🎤 = Micrófono
-🎵 = Audio del tutor
-📩 = Eventos de la API
-✅ = Éxito
-❌ = Error
-```
-
-## 🚢 Deploy a TestFlight
-
-```bash
-# Instalar EAS
-bun i -g @expo/eas-cli
-
-# Build
-eas build --platform ios
-
-# Submit
-eas submit --platform ios
-```
-
-**IMPORTANTE**: Configura secrets con `eas secret:create` antes de hacer build.
-
-## ❓ Preguntas Frecuentes
-
-**P: ¿Por qué no funciona en el navegador web?**  
-R: La Realtime API funciona mejor en dispositivos nativos. Usa Expo Go en tu iPhone.
-
-**P: ¿Cuánto cuesta usar OpenAI Realtime API?**  
-R: Consulta [openai.com/pricing](https://openai.com/pricing) para costos actuales.
-
-**P: ¿Puedo cambiar la voz del tutor?**  
-R: Sí, en `hooks/useRealtimeCall.ts` cambia `voice: "alloy"` por otra voz de OpenAI.
-
-**P: ¿Funciona sin internet?**  
-R: No, requiere conexión para comunicarse con OpenAI.
 
 ---
 
-**Built with ❤️ by Rork + OpenAI**
+## ✅ Correcciones implementadas
+
+### 1. WebSocket simplificado y corregido
+- ✅ URL correcta sin duplicados
+- ✅ Headers de autenticación en formato React Native
+- ✅ Validación simple de API key
+- ✅ Bloqueo en web con mensaje claro
+
+### 2. Validación de API key mejorada
+- ✅ Log de longitud de la clave
+- ✅ Verificación antes de throw error
+- ✅ Sin código después de return
+
+### 3. Formato de audio correcto
+- ✅ Envío: `{ type: "input_audio_buffer.append", audio: base64 }`
+- ✅ Recepción: Decodificación de `response.audio.delta`
+- ✅ Conversión PCM16 → WAV → reproducción con expo-av
+
+### 4. Reproducción por speakers
+- ✅ `playThroughEarpieceAndroid: false`
+- ✅ `playsInSilentModeIOS: true`
+- ✅ Audio por altavoces, no auricular
+
+---
+
+## 📊 Flujo técnico
+
+```
+1. startCall() → Conecta WebSocket + Inicia grabación
+2. WebSocket.onopen → Envía session.update con configuración
+3. Grabación → Envía chunks de audio cada 250ms
+4. OpenAI → Detecta habla (server VAD)
+5. response.audio.delta → Recibe audio en streaming
+6. playAudioChunk() → PCM16 → WAV → expo-av
+7. endCall() → Limpia recursos
+```
+
+---
+
+## 🎓 Tecnologías
+
+- **OpenAI Realtime API** - Conversaciones de voz en tiempo real
+- **WebSocket** - Comunicación bidireccional
+- **expo-av** - Grabación y reproducción
+- **React Native + Expo** - Framework mobile
+- **Expo Router** - Navegación file-based
+
+---
+
+## ⚙️ Configuración de OpenAI Realtime
+
+```typescript
+session: {
+  modalities: ["text", "audio"],
+  voice: "alloy",
+  input_audio_format: "pcm16",
+  output_audio_format: "pcm16",
+  turn_detection: {
+    type: "server_vad",
+    threshold: 0.5,
+    prefix_padding_ms: 300,
+    silence_duration_ms: 500,
+  }
+}
+```
+
+---
+
+**¡Listo para practicar inglés! 🚀**
+
+Si tienes problemas, revisa los logs en la terminal y verifica que tu API key esté configurada correctamente en Rork.

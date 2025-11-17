@@ -345,40 +345,39 @@ export function useRealtimeCall({
   };
 
   const connectWebSocket = useCallback(() => {
+    if (Platform.OS === "web") {
+      console.error("❌ Realtime voice only funciona en dispositivo físico via Expo Go.");
+      return;
+    }
+
     const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
 
-    console.log("🔑 API KEY CHECK:");
-    console.log("   - Is defined:", apiKey !== undefined);
-    console.log("   - Is null:", apiKey === null);
-    console.log("   - Type:", typeof apiKey);
-    console.log("   - Length:", apiKey?.length || 0);
+    console.log("🔑 API KEY LENGTH:", apiKey?.length || 0);
 
     if (!apiKey || apiKey === "undefined" || apiKey.length === 0) {
       console.error("❌ API key not loaded");
-      console.error("❌ OpenAI API key is not configured");
       console.error("❌ Please set EXPO_PUBLIC_OPENAI_API_KEY in Rork Integrations → Environment Variables");
-      console.error("❌ Current value:", apiKey);
       throw new Error("API key not loaded");
     }
 
-    console.log("✅ API key loaded, length:", apiKey.length);
-    console.log("🔑 Using API key (first 20 chars):", apiKey.substring(0, 20) + "...");
+    console.log("✅ API key loaded");
     console.log("🔌 Connecting to OpenAI Realtime API...");
 
+    const wsUrl = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17";
+    console.log("🔗 Connecting to:", wsUrl);
+
     try {
-      const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
-      console.log("🔗 Connecting to:", wsUrl);
-      
-      const ws = new WebSocket(
-        wsUrl,
-        [],
-        {
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "OpenAI-Beta": "realtime=v1",
-          },
-        }
-      );
+      const ws = new WebSocket(wsUrl, [], {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "OpenAI-Beta": "realtime=v1",
+        },
+      });
+
+      if (ws.binaryType) {
+        ws.binaryType = "arraybuffer";
+      }
+
       setupWebSocket(ws);
     } catch (error) {
       console.error("❌ Error connecting WebSocket:", error);
