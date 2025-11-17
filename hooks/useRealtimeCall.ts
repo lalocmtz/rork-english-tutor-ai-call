@@ -59,8 +59,8 @@ export function useRealtimeCall({
     
     Habla con un tono natural y conversacional. Corrige la pronunciación suavemente y solo cuando sea útil. 
     Haz preguntas sobre su día, vida, hábitos y experiencias. Anímalo a hablar. 
-    Mantén tus respuestas cortas y naturales, como una llamada telefónica real. 
-    Inicia la conversación diciendo: "Hey Eduardo, good to hear from you. How's your day going so far?" 
+    Mantén tus respuestas cortas y naturales, como una llamada telefónica real.
+    Cuando el usuario se conecte, salúdalo de inmediato sin esperar a que hable primero. Di algo como "Hey Eduardo, good to hear from you. How's your day going so far?" o similar según el estilo y idioma. 
     Recuerda todo lo que Eduardo te cuenta durante esta llamada para mantener una conversación coherente y personalizada.`;
   };
 
@@ -220,6 +220,14 @@ export function useRealtimeCall({
 
       ws.send(JSON.stringify(sessionUpdate));
       console.log("✅ Session update sent");
+      
+      setTimeout(() => {
+        const createResponse = {
+          type: "response.create",
+        };
+        ws.send(JSON.stringify(createResponse));
+        console.log("✅ Triggered initial greeting");
+      }, 500);
       
       setIsConnected(true);
     };
@@ -458,15 +466,34 @@ export function useRealtimeCall({
         await recording.startAsync();
         recordingRef.current = recording;
 
+        let lastPosition = 0;
         const sendAudioChunks = setInterval(async () => {
           if (
             recordingRef.current &&
             wsRef.current?.readyState === WebSocket.OPEN
           ) {
             try {
-              const uri = recording.getURI();
-              if (uri) {
-                console.log("🎤 Captured audio chunk from native recording");
+              const status = await recordingRef.current.getStatusAsync();
+              if (status.isRecording && status.durationMillis > lastPosition + 250) {
+                const uri = recording.getURI();
+                if (uri) {
+                  const response = await fetch(uri);
+                  const blob = await response.blob();
+                  const arrayBuffer = await blob.arrayBuffer();
+                  const base64Audio = btoa(
+                    String.fromCharCode(...new Uint8Array(arrayBuffer))
+                  );
+                  
+                  wsRef.current?.send(
+                    JSON.stringify({
+                      type: "input_audio_buffer.append",
+                      audio: base64Audio,
+                    })
+                  );
+                  
+                  console.log("🎤 Sent native audio chunk, duration:", status.durationMillis);
+                  lastPosition = status.durationMillis;
+                }
               }
             } catch (error) {
               console.error("❌ Error sending audio chunk:", error);
