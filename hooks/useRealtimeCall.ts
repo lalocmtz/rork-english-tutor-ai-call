@@ -303,7 +303,11 @@ export function useRealtimeCall({
 
     ws.onerror = (error) => {
       console.error("❌ WebSocket connection error:", error);
-      console.error("❌ Error details:", JSON.stringify(error, null, 2));
+      try {
+        console.error("❌ Error details:", JSON.stringify(error, null, 2));
+      } catch (e) {
+        console.error("❌ Error object:", error?.message || String(error));
+      }
     };
 
     ws.onclose = (event) => {
